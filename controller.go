@@ -1,7 +1,7 @@
 package main
 
 import (
-	controller "landscape/routines"
+	controller "app/landscape/routines"
 	"log"
 	"net/http"
 )
