@@ -1,10 +1,10 @@
 package routines
 
 import (
-	"../Model"
 	"fmt"
 	"github.com/gorilla/websocket"
 	"io/ioutil"
+	"landscape/Model"
 	"log"
 	"net/http"
 )
@@ -28,7 +28,7 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 8192,
 }
 
-//функция принимает и обрабатывает входящий запрос
+// HandleConnections функция принимает и обрабатывает входящий запрос
 func HandleConnections(w http.ResponseWriter, r *http.Request) {
 	// Upgrade initial GET request to a websocket
 	ws, err := upgrader.Upgrade(w, r, nil)
@@ -85,7 +85,7 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//
+// HandleMessages
 func HandleMessages() {
 	for {
 		// получаем сообщение из канала
@@ -106,7 +106,7 @@ func HandleMessages() {
 	}
 }
 
-//here we would receive json serialization of matrix
+// MatrixTestHandler here we would receive json serialization of matrix
 func MatrixTestHandler(w http.ResponseWriter, r *http.Request) {
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {

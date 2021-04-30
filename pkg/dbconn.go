@@ -1,11 +1,11 @@
 package pkg
 
 import (
-	"../Model"
 	"fmt"
 	_ "github.com/jackc/pgx"
 	"github.com/jackc/pgx/pgxpool"
 	"golang.org/x/net/context"
+	"landscape/Model"
 )
 
 //структура БД

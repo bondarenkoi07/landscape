@@ -1,17 +1,17 @@
 package main
 
 import (
-	controller "./routines"
+	controller "landscape/routines"
 	"log"
 	"net/http"
 )
 
 func main() {
 
-	//fs := http.FileServer(http.Dir("static"))
+	fs := http.FileServer(http.Dir("static"))
 
 	//подключение статических файлов к корневой директории сайта
-	//http.Handle("/", fs)
+	http.Handle("/", fs)
 	//тут будем обменивататься данными по вебсокету
 	http.HandleFunc("/ws", controller.HandleConnections)
 	//here we would canvaStructure json serializing of matrix

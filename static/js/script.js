@@ -144,11 +144,12 @@ reDraw();
 // and also texture of landscape
 // message - structure including info about single action made by user,
 //which will be send to all other users through server (see controller.go)
+let host = window.location.host
 
 // webSocket ws sends info about changes, which was made up by current user
-ws = new WebSocket('ws://db1.mati.su:8000/ws');
+ws = new WebSocket('ws://'+host+'/ws');
 // webSocket canvaStructure will send info about whole map after current user changes come into force
-canvaStructure = new WebSocket('ws://db1.mati.su:8000/test');
+canvaStructure = new WebSocket('ws://'+host+'/test');
 // error handler will receive info about occurred errors during validation of canvas structure
 //errors = new WebSocket('ws://localhost:8000/err')
 

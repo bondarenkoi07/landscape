@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="40dbaffd-4af8-4be8-82b3-a8e136d7e0a3" name="mati.su/landscape" url="http://db1.mati.su">
+        <fileTransfer rootFolder="/www/db1.mati.su/landscape" host="db1.mati.su" port="21">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>
