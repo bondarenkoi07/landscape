@@ -49,38 +49,24 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 	for {
 		var msg Model.ChangeData
 		// считываем данные, полученные поо вебсокету
-		err := ws.ReadJSON(&msg)
+		err = ws.ReadJSON(&msg)
 		validation := true
 		if err != nil {
 			log.Printf("error: %v", err)
 			delete(clients, ws)
 			break
 		}
-		files, err := ioutil.ReadDir("static/assets/models")
-		if err != nil {
-			log.Fatalf("error: %v", err)
-		}
-		validator := Model.NewModels(files)
+		validation, err = canvas.Check(msg) //TODO: implements error sending
 
-		if !validator.Find(msg.Model) && (msg.Mode == "DeleteModel" || msg.Mode == "PlaceModel") {
-			validation = false
-		}
 		//тут будем передавать сообщения другим  горутинам
 		if validation {
 			var transaction broadcastTransaction
 			transaction.value = msg
 			transaction.conn = ws
 			broadcast <- transaction
-			//if error occurred during validation, sends repaired canvas to user
-			//whom message cause error
 		} else {
-			msg.Mode = "DeleteModel"
-			err = ws.WriteJSON(msg)
-			if err != nil {
-				log.Printf("error: %v", err)
-				ws.Close()
-				delete(clients, ws)
-			}
+			delete(clients, ws)
+			break
 		}
 	}
 }
