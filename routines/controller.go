@@ -2,10 +2,10 @@ package routines
 
 import (
 	"app/landscape/Model"
-	"fmt"
 	"github.com/gorilla/websocket"
 	"io/ioutil"
 	"log"
+	"math"
 	"net/http"
 )
 
@@ -26,6 +26,34 @@ var canvas Model.Transaction
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  8192,
 	WriteBufferSize: 8192,
+}
+
+func init() {
+
+	canvas.Landscape = make(map[int64][]int64)
+	canvas.Object = make(map[int64][]string)
+
+	intOfCols := int64(math.Floor(
+		math.Sqrt(float64(
+			Model.CanvasWidth*Model.CanvasWidth+Model.CanvasHeight*Model.CanvasHeight),
+		) / Model.GridCount,
+	),
+	)
+	intOfRows := int64(math.Floor(Model.CanvasHeight/Model.GridCount) + 2)
+
+	log.Printf("cols: %d, rows: %d", intOfCols, intOfRows)
+
+	for y := -intOfRows; y < intOfRows; y++ {
+		canvas.Landscape[y] = make([]int64, 0)
+		canvas.Object[y] = make([]string, 0)
+
+		var x int64
+
+		for x = 0; x < intOfCols; x++ {
+			canvas.Landscape[y] = append(canvas.Landscape[y], 0)
+			canvas.Object[y] = append(canvas.Object[y], "")
+		}
+	}
 }
 
 // HandleConnections функция принимает и обрабатывает входящий запрос
@@ -58,15 +86,19 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 		}
 		validation, err = canvas.Check(msg) //TODO: implements error sending
 
+		if err != nil {
+			if err.Error() == "unknown model" {
+				delete(clients, ws)
+				break
+			}
+		}
+
 		//тут будем передавать сообщения другим  горутинам
 		if validation {
 			var transaction broadcastTransaction
 			transaction.value = msg
 			transaction.conn = ws
 			broadcast <- transaction
-		} else {
-			delete(clients, ws)
-			break
 		}
 	}
 }
@@ -102,7 +134,6 @@ func MatrixTestHandler(w http.ResponseWriter, r *http.Request) {
 	for {
 		// считываем данные, полученные по вебсокету
 		var lastCanvas Model.Transaction
-		fmt.Print("received canvas to " + ws.RemoteAddr().String() + "\n")
 		err := ws.ReadJSON(&lastCanvas)
 		if err != nil {
 			log.Print(err)
@@ -143,7 +174,6 @@ func MatrixTestHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		canvas = lastCanvas
-		fmt.Print("send canvas to " + ws.RemoteAddr().String() + "\n")
 	}
 }
 

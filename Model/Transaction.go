@@ -1,10 +1,16 @@
 package Model
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 const (
-	MaxHeight = 3
-	MinHeight = 0
+	MaxHeight    = 3
+	MinHeight    = 0
+	CanvasHeight = 600
+	CanvasWidth  = 1200
+	GridCount    = 30
 )
 
 type Transaction struct {
@@ -13,16 +19,18 @@ type Transaction struct {
 	Texture   string             `json:"texture"`
 }
 
+//TODO: create Transaction initializer
+
 func (t Transaction) Check(msg ChangeData) (bool, error) {
 	row, rowExists := t.Landscape[msg.Y]
 	if !rowExists {
-		return false, errors.New("wrong y")
+		return false, errors.New(fmt.Sprintf("wrong y %d", msg.Y))
 	}
 
 	length := int64(len(row))
 
-	if length > msg.X {
-		return false, errors.New("wrong x")
+	if length < msg.X || msg.X < 0 {
+		return false, errors.New(fmt.Sprintf("wrong x %d, length: %d", msg.Y, length))
 	}
 	height := row[msg.X]
 
