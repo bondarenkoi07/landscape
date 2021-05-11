@@ -2,10 +2,9 @@ package routines
 
 import (
 	"app/landscape/Model"
-	"fmt"
 	"github.com/gorilla/websocket"
-	"io/ioutil"
 	"log"
+	"math"
 	"net/http"
 )
 
@@ -26,6 +25,34 @@ var canvas Model.Transaction
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  8192,
 	WriteBufferSize: 8192,
+}
+
+func init() {
+
+	canvas.Landscape = make(map[int64][]int64)
+	canvas.Object = make(map[int64][]string)
+
+	intOfCols := int64(math.Floor(
+		math.Sqrt(float64(
+			Model.CanvasWidth*Model.CanvasWidth+Model.CanvasHeight*Model.CanvasHeight),
+		) / Model.GridCount,
+	),
+	)
+	intOfRows := int64(math.Floor(Model.CanvasHeight/Model.GridCount) + 2)
+
+	log.Printf("cols: %d, rows: %d", intOfCols, intOfRows)
+
+	for y := -intOfRows; y < intOfRows; y++ {
+		canvas.Landscape[y] = make([]int64, 0)
+		canvas.Object[y] = make([]string, 0)
+
+		var x int64
+
+		for x = 0; x < intOfCols; x++ {
+			canvas.Landscape[y] = append(canvas.Landscape[y], 0)
+			canvas.Object[y] = append(canvas.Object[y], "")
+		}
+	}
 }
 
 // HandleConnections функция принимает и обрабатывает входящий запрос
@@ -49,38 +76,28 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 	for {
 		var msg Model.ChangeData
 		// считываем данные, полученные поо вебсокету
-		err := ws.ReadJSON(&msg)
+		err = ws.ReadJSON(&msg)
 		validation := true
 		if err != nil {
 			log.Printf("error: %v", err)
 			delete(clients, ws)
 			break
 		}
-		files, err := ioutil.ReadDir("static/assets/models")
-		if err != nil {
-			log.Fatalf("error: %v", err)
-		}
-		validator := Model.NewModels(files)
+		validation, err = canvas.Check(msg) //TODO: implements error sending
 
-		if !validator.Find(msg.Model) && (msg.Mode == "DeleteModel" || msg.Mode == "PlaceModel") {
-			validation = false
+		if err != nil {
+			if err.Error() == "unknown model" {
+				delete(clients, ws)
+				break
+			}
 		}
+
 		//тут будем передавать сообщения другим  горутинам
 		if validation {
 			var transaction broadcastTransaction
 			transaction.value = msg
 			transaction.conn = ws
 			broadcast <- transaction
-			//if error occurred during validation, sends repaired canvas to user
-			//whom message cause error
-		} else {
-			msg.Mode = "DeleteModel"
-			err = ws.WriteJSON(msg)
-			if err != nil {
-				log.Printf("error: %v", err)
-				ws.Close()
-				delete(clients, ws)
-			}
 		}
 	}
 }
@@ -106,7 +123,7 @@ func HandleMessages() {
 	}
 }
 
-// MatrixTestHandler here we would receive json serialization of matrix
+// MatrixTestHandler here we would receive json serialization of matrix and test it
 func MatrixTestHandler(w http.ResponseWriter, r *http.Request) {
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -116,50 +133,22 @@ func MatrixTestHandler(w http.ResponseWriter, r *http.Request) {
 	for {
 		// считываем данные, полученные по вебсокету
 		var lastCanvas Model.Transaction
-		fmt.Print("received canvas to " + ws.RemoteAddr().String() + "\n")
-		err := ws.ReadJSON(&lastCanvas)
+		err = ws.ReadJSON(&lastCanvas)
 		if err != nil {
 			log.Print(err)
 			delete(clients, ws)
 			break
 		}
-		files, err := ioutil.ReadDir("static/assets/models")
+		err = lastCanvas.CheckMap()
 		if err != nil {
-			log.Fatal(err)
-		}
-		var status = make(map[string][]string)
-		var validation = true
-		validator := Model.NewModels(files)
-		for i := range lastCanvas.Object {
-			for j := range lastCanvas.Object[i] {
-				item := lastCanvas.Object[i][j]
-				//log.Print("name =  " + item)
-				if item != "" {
-					//log.Print(item)
-					if !validator.Find(item) {
-						log.Print("wow" + item)
-						validation = false
-						item = ""
-						status["error"] = append(status["error"], "element "+item+" is restricted")
-					}
-				}
-			}
-		}
-		if validation {
-			status["status"] = append(status["error"], "true")
-		} else {
-			status["status"] = append(status["error"], "false")
 			err = ws.WriteJSON(canvas)
 			if err != nil {
 				log.Print(err)
 				delete(clients, ws)
 				break
 			}
+		} else {
+			canvas = lastCanvas
 		}
-		canvas = lastCanvas
-		fmt.Print("send canvas to " + ws.RemoteAddr().String() + "\n")
 	}
 }
-
-//TODO: create routine to validate data
-//TODO: implement ErrorHandler for errors, raising during the game (however, now errors come only from @MatrixTestHandler via var @status)

@@ -13,6 +13,9 @@ var canvascontainer = document.getElementById("canvasishere");
 var width = canvascontainer.offsetWidth;
 var height = canvascontainer.offsetHeight;
 
+console.log("width:"+width+", height:"+height);
+
+
 //Создаем внутри него Canvas
 var canvas = document.createElement("canvas");
 canvas.width = width;

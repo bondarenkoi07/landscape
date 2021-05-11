@@ -2,6 +2,7 @@ package Model
 
 import (
 	"errors"
+	"io/ioutil"
 	"log"
 	"os"
 	"regexp"
@@ -45,4 +46,17 @@ func (A *Models) Find(value string) bool {
 		}
 	}
 	return false
+}
+
+func CheckModel(msg ChangeData) bool {
+	files, err := ioutil.ReadDir("static/assets/models")
+	if err != nil {
+		log.Fatalf("error: %v", err)
+	}
+	validator := NewModels(files)
+
+	if !validator.Find(msg.Model) && (msg.Mode == "DeleteModel" || msg.Mode == "PlaceModel") {
+		return false
+	}
+	return true
 }
