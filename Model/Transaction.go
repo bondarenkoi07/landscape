@@ -3,6 +3,7 @@ package Model
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 )
 
 const (
@@ -57,4 +58,35 @@ func (t Transaction) Check(msg ChangeData) (bool, error) {
 
 	}
 	return true, nil
+}
+
+func (t Transaction) CheckMap() error {
+	files, err := ioutil.ReadDir("static/assets/models")
+	if err != nil {
+		return err
+	}
+
+	validator := NewModels(files)
+	for i := range t.Object {
+		for j := range t.Object[i] {
+			item := t.Object[i][j]
+
+			if item != "" {
+
+				if !validator.Find(item) {
+					return err
+				}
+			}
+		}
+	}
+
+	for i := range t.Landscape {
+		for j := range t.Landscape[i] {
+			item := t.Landscape[i][j]
+			if item > MaxHeight || item < MinHeight {
+				return errors.New("invalid height")
+			}
+		}
+	}
+	return nil
 }

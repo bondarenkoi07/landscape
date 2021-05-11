@@ -3,7 +3,6 @@ package routines
 import (
 	"app/landscape/Model"
 	"github.com/gorilla/websocket"
-	"io/ioutil"
 	"log"
 	"math"
 	"net/http"
@@ -124,7 +123,7 @@ func HandleMessages() {
 	}
 }
 
-// MatrixTestHandler here we would receive json serialization of matrix
+// MatrixTestHandler here we would receive json serialization of matrix and test it
 func MatrixTestHandler(w http.ResponseWriter, r *http.Request) {
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -134,48 +133,22 @@ func MatrixTestHandler(w http.ResponseWriter, r *http.Request) {
 	for {
 		// считываем данные, полученные по вебсокету
 		var lastCanvas Model.Transaction
-		err := ws.ReadJSON(&lastCanvas)
+		err = ws.ReadJSON(&lastCanvas)
 		if err != nil {
 			log.Print(err)
 			delete(clients, ws)
 			break
 		}
-		files, err := ioutil.ReadDir("static/assets/models")
+		err = lastCanvas.CheckMap()
 		if err != nil {
-			log.Fatal(err)
-		}
-		var status = make(map[string][]string)
-		var validation = true
-		validator := Model.NewModels(files)
-		for i := range lastCanvas.Object {
-			for j := range lastCanvas.Object[i] {
-				item := lastCanvas.Object[i][j]
-				//log.Print("name =  " + item)
-				if item != "" {
-					//log.Print(item)
-					if !validator.Find(item) {
-						log.Print("wow" + item)
-						validation = false
-						item = ""
-						status["error"] = append(status["error"], "element "+item+" is restricted")
-					}
-				}
-			}
-		}
-		if validation {
-			status["status"] = append(status["error"], "true")
-		} else {
-			status["status"] = append(status["error"], "false")
 			err = ws.WriteJSON(canvas)
 			if err != nil {
 				log.Print(err)
 				delete(clients, ws)
 				break
 			}
+		} else {
+			canvas = lastCanvas
 		}
-		canvas = lastCanvas
 	}
 }
-
-//TODO: create routine to validate data
-//TODO: implement ErrorHandler for errors, raising during the game (however, now errors come only from @MatrixTestHandler via var @status)
